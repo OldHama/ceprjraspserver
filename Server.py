@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import logging
 from datetime import datetime
-
+import actuator
 
 app = Flask(__name__)
 my_serial_num = 202311080001
@@ -23,21 +23,26 @@ def make_cocktail():
     
     if data:
         UserID = data.get('UserID')
-        cocktail_name = data.get('cocktail_name')
+        recipeTitle = data.get('recipeTitle')
         first = data.get('first')
         second = data.get('second')
         third = data.get('third')
         fourth = data.get('fourth')
 
-        if all([UserID, cocktail_name, first, second, third, fourth]):
+        if all([UserID, recipeTitle, first, second, third, fourth]):
             current_date = datetime.now().strftime("%Y%m%d")
+            
+            pumps = actuator.pumps
+            timings = [first, second, third, fourth]
+            for pump in pumps:
+                actuator.g.output(pump, True)
+                actuator.sleep(1)
+                actuator.g.output(pump, False)
+            
+                
             return jsonify({
-                'UserID': UserID,
-                'cocktail_name': cocktail_name,
-                'first': first,
-                'second': second,
-                'third': third,
-                'fourth': fourth
+                'recipeTitle': recipeTitle,
+                'date' : current_date
             })
         else:
             return "Invalid JSON data", 400
@@ -45,5 +50,6 @@ def make_cocktail():
         return "JSON data is required", 400
 
 if __name__ == '__main__':
+    actuator.setup()
     app.run(host='192.168.0.104', port=10000)
 
