@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import logging
 from datetime import datetime
 import actuator
+import neo_act as n
 
 app = Flask(__name__)
 my_serial_num = 202311080001
@@ -28,6 +29,7 @@ def make_cocktail():
         second = data.get('second')
         third = data.get('third')
         fourth = data.get('fourth')
+        Serial_Number = data.get('Serial_Number')
 
         if all([UserID, recipeTitle, first, second, third, fourth]):
             current_date = datetime.now().strftime("%Y%m%d")
@@ -36,11 +38,14 @@ def make_cocktail():
             timings = [first, second, third, fourth]
             for pump in pumps:
                 actuator.g.output(pump, True)
-                actuator.sleep(1)
+                n.on()
+                actuator.sleep(3)
                 actuator.g.output(pump, False)
+                n.off()
             
                 
             return jsonify({
+                'UserID':UserID,
                 'recipeTitle': recipeTitle,
                 'date' : current_date
             })
@@ -52,4 +57,3 @@ def make_cocktail():
 if __name__ == '__main__':
     actuator.setup()
     app.run(host='192.168.0.104', port=10000)
-
