@@ -1,7 +1,32 @@
 import board
 import neopixel
+import time
 
 num_pixels = 12  # 예시로 30개의 LED를 사용
+ORDER = neopixel.GRB  # LED의 색상 순서
+pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=0.5, auto_write=False, pixel_order=ORDER)
+
+
+def wheel(pos):
+    # 색상 휠을 생성하여 무지개 색상을 반환합니다.
+    if pos < 0 or pos > 255:
+        return (0, 0, 0)
+    if pos < 85:
+        return (255 - pos * 3, pos * 3, 0)
+    if pos < 170:
+        pos -= 85
+        return (0, 255 - pos * 3, pos * 3)
+    pos -= 170
+    return (pos * 3, 0, 255 - pos * 3)
+
+def rainbow_cycle(wait):
+    # 레인보우 사이클 패턴을 실행합니다.
+    for j in range(255):
+        for i in range(NUM_PIXELS):
+            pixel_index = (i * 256 // NUM_PIXELS) + j
+            pixels[i] = wheel(pixel_index & 255)
+        pixels.show()
+        time.sleep(wait)
 
 def on():
     pixels = neopixel.NeoPixel(board.D18, num_pixels)
