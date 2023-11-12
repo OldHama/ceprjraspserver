@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 import actuator
 import neo_act as n
+import threading
 
 app = Flask(__name__)
 my_serial_num = 202311080001
@@ -56,4 +57,5 @@ def make_cocktail():
 
 if __name__ == '__main__':
     actuator.setup()
+    threading.Thread(target=lambda x:n.rainbow_cycle(0.001)).start()
     app.run(host='192.168.0.104', port=10000)
