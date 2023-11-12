@@ -39,12 +39,9 @@ def make_cocktail():
             timings = [first, second, third, fourth]
             for pump in pumps:
                 actuator.g.output(pump, True)
-                n.on()
                 actuator.sleep(3)
                 actuator.g.output(pump, False)
-                n.off()
             
-                
             return jsonify({
                 'UserID':UserID,
                 'recipeTitle': recipeTitle,
@@ -57,5 +54,5 @@ def make_cocktail():
 
 if __name__ == '__main__':
     actuator.setup()
-    threading.Thread(target=lambda x:n.rainbow_cycle(0.001)).start()
+    threading.Thread(target=lambda:n.make_rainbow(0.001)).start()
     app.run(host='192.168.0.104', port=10000)
