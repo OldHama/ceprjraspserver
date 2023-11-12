@@ -22,12 +22,14 @@ def wheel(pos):
 def rainbow_cycle(wait):
     # 레인보우 사이클 패턴을 실행합니다.
     for j in range(255):
-        for i in range(NUM_PIXELS):
-            pixel_index = (i * 256 // NUM_PIXELS) + j
+        for i in range(num_pixels):
+            pixel_index = (i * 256 // num_pixels) + j
             pixels[i] = wheel(pixel_index & 255)
         pixels.show()
         time.sleep(wait)
-
+def make_rainbow(timing):
+    while True:
+        rainbow_cycle(timing)
 def on():
     pixels = neopixel.NeoPixel(board.D18, num_pixels)
 
