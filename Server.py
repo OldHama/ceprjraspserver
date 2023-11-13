@@ -6,8 +6,9 @@ import neo_act as n
 import threading
 import socket
 import requests
+from multiprocessing import Process
 
-
+               
 app = Flask(__name__)
 my_serial_num = 202311080001
 url = 'http://ceprj.gachon.ac.kr:60005/'
@@ -23,7 +24,7 @@ file_handler.setLevel(logging.DEBUG)
 app.logger.addHandler(file_handler)
 
 def send_ip():
-    global prev_ip_address, ip_address
+    global prev_ip_address, ip_address, server
     url = 'http://ceprj.gachon.ac.kr:60005/device/send_ip'
     
     while True:
@@ -37,6 +38,11 @@ def send_ip():
                 response = requests.post(url, json=json_data)
                 print(response.text)
                 prev_ip_address = ip_address
+                server.terminate()
+                server.join()
+                server = Process(target = lambda: app.run(host = ip_address, port = 10000))
+                server.start()
+                
         except:
             print("sth wnet wrong :(")
         actuator.sleep(1)
@@ -122,5 +128,7 @@ if __name__ == '__main__':
     threading.Thread(target=send_ip).start()
     threading.Thread(target=lambda:n.make_rainbow(0.001)).start()
     send_status()
-    app.run(host=ip_address, port=10000)
+    server = Process(target = lambda: app.run(host = ip_address, port = 10000))
+    server.start()
+  #  app.run(host=ip_address, port=10000)
 
