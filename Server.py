@@ -16,12 +16,19 @@ status = "waiting"
 prev_ip_address = 'address'
 
 
+
 logging.basicConfig(filename='app.log', level=logging.DEBUG)
 
 file_handler = logging.FileHandler('app.log')
 file_handler.setLevel(logging.DEBUG)
 
 app.logger.addHandler(file_handler)
+
+def parse(just_string):
+    just_string = str(just_string)
+    just_string.replace('ml', '')
+    
+    return int(just_string)
 
 def send_ip():
     global prev_ip_address, ip_address, server
@@ -42,11 +49,12 @@ def send_ip():
                 server.join()
                 server = Process(target = lambda: app.run(host = ip_address, port = 10000))
                 server.start()
+                send_status()
                 
         except:
             print("sth wnet wrong :(")
         actuator.sleep(1)
-        
+
 def send_status():
     url = 'http://ceprj.gachon.ac.kr:60005/device/send_status' 
     json_data = {
@@ -57,6 +65,7 @@ def send_status():
     print(response.text)
 
 def get_ip_address():
+    
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         # doesn't even have to be reachable
@@ -67,11 +76,27 @@ def get_ip_address():
     finally:
         s.close()
     return IP
-
+    
+    
 @app.route('/', methods=['GET', 'POST'])
 def hello():
+    # global pattern
+    stop()
     return "hello"
 
+@app.route('/set_brightness', methods=['POST', 'GET'])
+def set_brightness():
+    global bright
+    
+    data = request.json
+    if data:
+        print("GOT SOMETHING")
+        bright = data.get("brightness")
+        
+    return jsonify({
+                "brightness": bright
+            })
+    
 @app.route('/make_cocktail', methods=['POST', 'GET'])
 def make_cocktail():
     global status
@@ -80,12 +105,12 @@ def make_cocktail():
     if data:
         UserID = data.get('UserID')
         recipeTitle = data.get('recipeTitle')
-        first = data.get('first')
-        second = data.get('second')
-        third = data.get('third')
-        fourth = data.get('fourth')
+        first = parse(data.get('first'))
+        second = parse(data.get('second'))
+        third = parse(data.get('third'))
+        fourth = parse(data.get('fourth'))
         Serial_Number = data.get('Serial_Number')
-
+    
         if all([UserID, recipeTitle, first, second, third, fourth]):
             current_date = datetime.now().strftime("%Y%m%d")
             
@@ -98,13 +123,13 @@ def make_cocktail():
             for pump in pumps:
                 actuator.g.output(pump, True)
                 if pump == actuator.pump1:
-                    actuator.sleep(first//15*sec)
+                    actuator.sleep(int(first)//15*sec)
                 elif pump == actuator.pump2:
-                    actuator.sleep(second//15*sec)
+                    actuator.sleep(int(second)//15*sec)
                 elif pump == actuator.pump3:
-                    actuator.sleep(third//15*sec*0.6)
+                    actuator.sleep(int(third)//15*sec*0.6)
                 else:
-                    actuator.sleep(fourth//15*sec)
+                    actuator.sleep(int(fourth)//15*sec)
 
                 actuator.g.output(pump, False)
             status = "done"
@@ -114,21 +139,41 @@ def make_cocktail():
             return jsonify({
                 'UserID':UserID,
                 'recipeTitle': recipeTitle,
-                'date' : current_date
+                'date' : current_date,
+                'success' : True
             })
         else:
-            return "Invalid JSON data", 400
+            return jsonify({
+                'success' : False
+            })
     else:
-        return "JSON data is required", 400
+        return jsonify({
+            'success' : False
+        })
+def make_pattern(timing, bright, led_pattern):
+    global pattern
+    pattern = led_pattern
+    while True:
+        if pattern == 'rainbow':
+            n.rainbow_cycle(timing, bright)
+            print(pattern)
+        else:
+            print(pattern)
+            n.off()
 
+def stop():
+    global pattern
+    pattern = ''
+    
 if __name__ == '__main__':
+    
     actuator.setup()
     ip_address = get_ip_address()
     print("My IP Address is:", ip_address)
+
     threading.Thread(target=send_ip).start()
-    threading.Thread(target=lambda:n.make_rainbow(0.001)).start()
-    send_status()
+    threading.Thread(target=lambda:make_pattern(0.001, 0.5, 'rainbow')).start()
+    
     server = Process(target = lambda: app.run(host = ip_address, port = 10000))
     server.start()
-  #  app.run(host=ip_address, port=10000)
-
+    send_status()
