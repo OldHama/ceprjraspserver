@@ -80,8 +80,8 @@ def get_ip_address():
     
 @app.route('/', methods=['GET', 'POST'])
 def hello():
-    # global pattern
-    stop()
+    global neopixel_t1
+    neopixel_t1.change_pattern("123")
     return "hello"
 
 @app.route('/set_brightness', methods=['POST', 'GET'])
@@ -150,21 +150,38 @@ def make_cocktail():
         return jsonify({
             'success' : False
         })
-def make_pattern(timing, bright, led_pattern):
+def make_pattern(timing, bright):
     global pattern
-    pattern = led_pattern
     while True:
-        if pattern == 'rainbow':
+        ledpattern = pattern
+        if ledpattern == 'rainbow':
             n.rainbow_cycle(timing, bright)
-            print(pattern)
+            print('ledpatter:',ledpattern,"pattenr:",pattern)
         else:
-            print(pattern)
             n.off()
+        actuator.sleep(0.001)
 
-def stop():
-    global pattern
-    pattern = ''
-    
+class led_thread(threading.Thread):
+    def __init__(self, name):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.pattern = 'rainbow'
+        self.timing = 0.001
+        self.bright = 0.8
+    def run (self):
+        while True:
+            if self.pattern == 'rainbow':
+                n.rainbow_cycle(self.timing, self.bright)
+            else:
+                n.off()
+            actuator.sleep(0.001)
+            
+    def change_pattern(self, new_pattern):
+            self.pattern = new_pattern
+            print("123")
+        
+        
+        
 if __name__ == '__main__':
     
     actuator.setup()
@@ -172,8 +189,13 @@ if __name__ == '__main__':
     print("My IP Address is:", ip_address)
 
     threading.Thread(target=send_ip).start()
-    threading.Thread(target=lambda:make_pattern(0.001, 0.5, 'rainbow')).start()
+    #led_thread = threading.Thread(target=lambda:make_pattern(0.001, 0.5))
+    neopixel_t1 = led_thread('Thread 1')
+    neopixel_t1.start()
     
     server = Process(target = lambda: app.run(host = ip_address, port = 10000))
     server.start()
     send_status()
+    neopixel_t1.change_pattern("123")
+    actuator.sleep(3)
+    neopixel_t1.change_pattern("rainbow")
