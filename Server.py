@@ -84,15 +84,15 @@ def get_ip_address():
 def hello():
     global neopixel_t1
     print(neopixel_t1.pattern)
-    print(neopixel_t1.bright)
     print(neopixel_t1.timing)
+    print(neopixel_t1.bright)
     neopixel_t1.write_profile('rainbow\n0.005\n0.7')
     return "hello"
 
 @app.route('/fast', methods=['GET', 'POST'])
 def fast():
     global neopixel_t1
-    neopixel_t1.write_profile('rainbow\n0.001\n1.0')
+    neopixel_t1.write_profile('breathe\n0.01\n0.3')
     return "hello"
 
 @app.route('/set_brightness', methods=['POST', 'GET'])
@@ -101,13 +101,28 @@ def set_brightness():
     
     data = request.json
     if data:
-        print("GOT SOMETHING")
         bright = data.get("brightness")
-        
+        if 0<=int(bright)<=1:
+            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{neopixel_t1.timing}\n{bright}')
+            
     return jsonify({
                 "brightness": bright
             })
-    
+
+@app.route('/breathing', methods=['POST', 'GET'])
+def breathing():
+    neopixel_t1.write_profile(f'breathe\n{neopixel_t1.timing}\n{neopixel_t1.bright}')            
+    return jsonify({
+                "pattern":'breathe'
+            })
+
+@app.route('/rainbow', methods=['POST', 'GET'])
+def rainbow():
+    neopixel_t1.write_profile(f'rainbow\n{neopixel_t1.timing}\n{neopixel_t1.bright}')            
+    return jsonify({
+                "pattern":'rainbow'
+            })
+   
 @app.route('/make_cocktail', methods=['POST', 'GET'])
 def make_cocktail():
     global status
@@ -127,7 +142,7 @@ def make_cocktail():
             
             status = "inprogress"
             send_status()
-            
+            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{0.001}\n{neopixel_t1.bright}')
             pumps = actuator.pumps
             timings = [first, second, third, fourth]
             sec = 7.5
@@ -143,6 +158,7 @@ def make_cocktail():
                     actuator.sleep(int(fourth)//15*sec)
 
                 actuator.g.output(pump, False)
+            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{0.003}\n{neopixel_t1.bright}')
             status = "done"
             send_status()
             status = "waiting"
