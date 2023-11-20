@@ -5,6 +5,8 @@ import time
 num_pixels = 12  # 예시로 30개의 LED를 사용
 ORDER = neopixel.GRB  # LED의 색상 순서
 pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=0.1, auto_write=False, pixel_order=ORDER)
+increasing = True
+brightness = 0
 
 def wheel(pos):
     # 색상 휠을 생성하여 무지개 색상을 반환합니다.
@@ -27,8 +29,22 @@ def rainbow_cycle(wait, bright):
             pixels[i] = wheel(pixel_index & 255)
         pixels.show()
         time.sleep(wait)
-        
-
+def breathe(wait, bright):
+    global brightness, increasing
+    pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=brightness, auto_write=False, pixel_order=ORDER)
+    
+    pixels.fill((255, 255, 255))
+    pixels.show()
+    
+    if increasing:
+        brightness += 0.01
+        if brightness >= bright:
+            increasing = False
+    else:
+        brightness -= 0.01
+        if brightness <= 0:
+            increasing = True
+    time.sleep(wait)
 def on():
     pixels = neopixel.NeoPixel(board.D18, num_pixels)
 
