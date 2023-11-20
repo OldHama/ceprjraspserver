@@ -6,8 +6,10 @@ import neo_act as n
 import threading
 import socket
 import requests
-from multiprocessing import Process
+import neo_thread
 
+from multiprocessing import Process
+global neopixel_thread, ip_address, status
                
 app = Flask(__name__)
 my_serial_num = 202311080001
@@ -81,7 +83,16 @@ def get_ip_address():
 @app.route('/', methods=['GET', 'POST'])
 def hello():
     global neopixel_t1
-    neopixel_t1.change_pattern("123")
+    print(neopixel_t1.pattern)
+    print(neopixel_t1.bright)
+    print(neopixel_t1.timing)
+    neopixel_t1.write_profile('rainbow\n0.005\n0.7')
+    return "hello"
+
+@app.route('/fast', methods=['GET', 'POST'])
+def fast():
+    global neopixel_t1
+    neopixel_t1.write_profile('rainbow\n0.001\n1.0')
     return "hello"
 
 @app.route('/set_brightness', methods=['POST', 'GET'])
@@ -149,38 +160,7 @@ def make_cocktail():
     else:
         return jsonify({
             'success' : False
-        })
-def make_pattern(timing, bright):
-    global pattern
-    while True:
-        ledpattern = pattern
-        if ledpattern == 'rainbow':
-            n.rainbow_cycle(timing, bright)
-            print('ledpatter:',ledpattern,"pattenr:",pattern)
-        else:
-            n.off()
-        actuator.sleep(0.001)
-
-class led_thread(threading.Thread):
-    def __init__(self, name):
-        threading.Thread.__init__(self)
-        self.name = name
-        self.pattern = 'rainbow'
-        self.timing = 0.001
-        self.bright = 0.8
-    def run (self):
-        while True:
-            if self.pattern == 'rainbow':
-                n.rainbow_cycle(self.timing, self.bright)
-            else:
-                n.off()
-            actuator.sleep(0.001)
-            
-    def change_pattern(self, new_pattern):
-            self.pattern = new_pattern
-            print("123")
-        
-        
+        })        
         
 if __name__ == '__main__':
     
@@ -189,13 +169,9 @@ if __name__ == '__main__':
     print("My IP Address is:", ip_address)
 
     threading.Thread(target=send_ip).start()
-    #led_thread = threading.Thread(target=lambda:make_pattern(0.001, 0.5))
-    neopixel_t1 = led_thread('Thread 1')
+    neopixel_t1 = neo_thread.led_thread('Neopixel_t1')
     neopixel_t1.start()
     
     server = Process(target = lambda: app.run(host = ip_address, port = 10000))
     server.start()
     send_status()
-    neopixel_t1.change_pattern("123")
-    actuator.sleep(3)
-    neopixel_t1.change_pattern("rainbow")
