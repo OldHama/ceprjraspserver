@@ -29,6 +29,8 @@ class led_thread(threading.Thread):
             self.read_profile()
             if self.pattern == 'rainbow':
                 n.rainbow_cycle(self.timing, self.bright)
+            elif self.pattern == 'breathe':
+                n.breathe(self.timing, self.bright)
             else:
                 n.off()
             actuator.sleep(0.001)
