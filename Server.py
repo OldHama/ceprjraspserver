@@ -83,10 +83,10 @@ def get_ip_address():
 @app.route('/', methods=['GET', 'POST'])
 def hello():
     global neopixel_t1
-    print(neopixel_t1.pattern)
-    print(neopixel_t1.timing)
-    print(neopixel_t1.bright)
-    neopixel_t1.write_profile('rainbow\n0.005\n0.7')
+    #print(neopixel_t1.pattern)
+    #print(neopixel_t1.timing)
+    #print(neopixel_t1.bright)
+    neopixel_t1.write_profile('rainbow\n0.003\n0.7')
     return "hello"
 
 @app.route('/fast', methods=['GET', 'POST'])
@@ -111,16 +111,16 @@ def set_brightness():
 
 @app.route('/breathing', methods=['POST', 'GET'])
 def breathing():
-    neopixel_t1.write_profile(f'breathe\n{neopixel_t1.timing}\n{neopixel_t1.bright}')            
+    neopixel_t1.write_profile(f'breathe\n0.01\n{neopixel_t1.bright}')            
     return jsonify({
-                "pattern":'breathe'
+                "pattern": neopixel_t1.pattern
             })
 
 @app.route('/rainbow', methods=['POST', 'GET'])
 def rainbow():
-    neopixel_t1.write_profile(f'rainbow\n{neopixel_t1.timing}\n{neopixel_t1.bright}')            
+    neopixel_t1.write_profile(f'rainbow\n0.005\n{neopixel_t1.bright}')            
     return jsonify({
-                "pattern":'rainbow'
+                "pattern":neopixel_t1.pattern
             })
    
 @app.route('/make_cocktail', methods=['POST', 'GET'])
@@ -141,24 +141,27 @@ def make_cocktail():
             current_date = datetime.now().strftime("%Y%m%d")
             
             status = "inprogress"
+            pattern = neopixel_t1.pattern
+            print(pattern)
             send_status()
-            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{0.001}\n{neopixel_t1.bright}')
+            neopixel_t1.write_profile(f'rainbow\n0.001\n{neopixel_t1.bright}')
             pumps = actuator.pumps
             timings = [first, second, third, fourth]
-            sec = 7.5
-            for pump in pumps:
-                actuator.g.output(pump, True)
-                if pump == actuator.pump1:
-                    actuator.sleep(int(first)//15*sec)
-                elif pump == actuator.pump2:
-                    actuator.sleep(int(second)//15*sec)
-                elif pump == actuator.pump3:
-                    actuator.sleep(int(third)//15*sec*0.6)
-                else:
-                    actuator.sleep(int(fourth)//15*sec)
-
-                actuator.g.output(pump, False)
-            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{0.003}\n{neopixel_t1.bright}')
+            
+            pump1 = threading.Thread(target = lambda: pump_run(pumps[0], timings[0], 1))
+            pump2 = threading.Thread(target = lambda: pump_run(pumps[1], timings[1], 1))
+            pump3 = threading.Thread(target = lambda: pump_run(pumps[2], timings[2], 0.6))
+            pump4 = threading.Thread(target = lambda: pump_run(pumps[3], timings[3], 1))
+            pump1.start()
+            pump2.start()
+            pump3.start()
+            pump4.start()
+            pump1.join()
+            pump2.join()
+            pump3.join()
+            pump4.join()
+            
+            neopixel_t1.write_profile(f'rainbow\n0.01\n{neopixel_t1.bright}')
             status = "done"
             send_status()
             status = "waiting"
@@ -176,8 +179,12 @@ def make_cocktail():
     else:
         return jsonify({
             'success' : False
-        })        
-        
+        })
+def pump_run(pump, amount, sec):
+    actuator.g.output(pump, True)
+    actuator.sleep(int(amount)//15*7.5*sec)
+    actuator.g.output(pump, False)
+
 if __name__ == '__main__':
     
     actuator.setup()
@@ -191,3 +198,4 @@ if __name__ == '__main__':
     server = Process(target = lambda: app.run(host = ip_address, port = 10000))
     server.start()
     send_status()
+    hello()
