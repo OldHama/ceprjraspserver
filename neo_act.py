@@ -22,7 +22,7 @@ def wheel(pos):
 
 def rainbow_cycle(wait, bright):
     # 레인보우 사이클 패턴을 실행합니다.
-    pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=bright, auto_write=False, pixel_order=ORDER)
+    pixels.brightness = bright
     for j in range(255):
         for i in range(num_pixels):
             pixel_index = (i * 256 // num_pixels) + j
@@ -31,7 +31,7 @@ def rainbow_cycle(wait, bright):
         time.sleep(wait)
 def breathe(wait, bright):
     global brightness, increasing
-    pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=brightness, auto_write=False, pixel_order=ORDER)
+    pixels.brightness = brightness
     
     pixels.fill((255, 255, 255))
     pixels.show()
