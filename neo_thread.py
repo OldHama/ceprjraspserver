@@ -12,17 +12,26 @@ class led_thread(threading.Thread):
         self.read_profile()
         
     def read_profile(self):
-        file = open("profile.txt", 'r')
-        pattern_name = file.readlines()
-        file.close()
-        self.pattern = pattern_name[0].replace('\n', '')
-        self.timing = float(pattern_name[1].replace('\n', ''))
-        self.bright = float(pattern_name[2].replace('\n', ''))
+        try:
+            file = open("profile.txt", 'r')
+            pattern_name = file.readlines()
+            file.close()
+            if not pattern_name:
+                pass
+            else:
+                self.pattern = pattern_name[0].replace('\n', '')
+                self.timing = float(pattern_name[1].replace('\n', ''))
+                self.bright = float(pattern_name[2].replace('\n', ''))
+        except:
+            self.read_profile(self)
     
     def write_profile(self, msg):
-        file = open("profile.txt", "w")
-        file.write(msg)
-        file.close()
+        try:
+            file = open("profile.txt", "w")
+            file.write(msg)
+            file.close()
+        except:
+            self.write_profile(self, msg)
         
     def run (self):
         while True:
@@ -33,5 +42,5 @@ class led_thread(threading.Thread):
                 n.breathe(self.timing, self.bright)
             else:
                 n.off()
-            actuator.sleep(0.001)
+            # actuator.sleep(0.01)
 
