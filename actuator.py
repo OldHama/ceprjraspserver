@@ -27,4 +27,3 @@ def setup():
     for pump in pumps_A:
         g.setup(pump , g.OUT)
         g.output(pump, False)
-        
