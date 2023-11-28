@@ -1,63 +1,54 @@
-import board
-import neopixel
-import time
+import threading
+import neo_act as n
+import actuator
+import random as rnd
 
-num_pixels = 12  # 예시로 30개의 LED를 사용
-ORDER = neopixel.GRB  # LED의 색상 순서
-pixels = neopixel.NeoPixel(board.D18 , num_pixels, brightness=0.1, auto_write=False, pixel_order=ORDER)
-increasing = True
-brightness = 0
+message = ''
 
-def wheel(pos):
-    # 색상 휠을 생성하여 무지개 색상을 반환합니다.
-    if pos < 0 or pos > 255:
-        return (0, 0, 0)
-    if pos < 85:
-        return (255 - pos * 3, pos * 3, 0)
-    if pos < 170:
-        pos -= 85
-        return (0, 255 - pos * 3, pos * 3)
-    pos -= 170
-    return (pos * 3, 0, 255 - pos * 3)
-
-def rainbow_cycle(wait, bright):
-    # 레인보우 사이클 패턴을 실행합니다.
-    pixels.brightness = bright
-    for j in range(255):
-        for i in range(num_pixels):
-            pixel_index = (i * 256 // num_pixels) + j
-            pixels[i] = wheel(pixel_index & 255)
-        pixels.show()
-        time.sleep(wait)
-def breathe(wait, bright):
-    global brightness, increasing
-    pixels.brightness = brightness
+class led_thread(threading.Thread):
+    def __init__(self, name):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.pattern = 0
+        self.timing = 0
+        self.bright = 0
+        self.read_profile()
+        
+    def read_profile(self):
+        try:
+            file = open("/home/cocktaillove/maker_python_server/profile.txt", 'r')
+            pattern_name = file.readlines()
+            file.close()
+            if not pattern_name:
+                pass
+            else:
+                self.pattern = pattern_name[0].replace('\n', '')
+                self.timing = float(pattern_name[1].replace('\n', ''))
+                self.bright = float(pattern_name[2].replace('\n', ''))
+        except:
+            self.read_profile(self)
     
-    pixels.fill((255, 255, 255))
-    pixels.show()
-    
-    if increasing:
-        brightness += 0.01
-        if brightness >= bright:
-            increasing = False
-    else:
-        brightness -= 0.01
-        if brightness <= 0:
-            increasing = True
-    time.sleep(wait)
-def on():
-    pixels = neopixel.NeoPixel(board.D18, num_pixels)
-
-# 모든 픽셀을 흰색으로 설정
-    for i in range(num_pixels):
-        pixels[i] = (100, 100, 100)
-    pixels.show()
-
-def off():
-    pixels = neopixel.NeoPixel(board.D18, num_pixels)
-
-# 모든 픽셀을 흰색으로 설정
-    for i in range(num_pixels):
-        pixels[i] = (0, 0, 0)
-    pixels.show()
-
+    def write_profile(self, msg):
+        global message
+        message = msg
+        try:
+            file = open("/home/cocktaillove/maker_python_server/profile.txt", "w")
+            file.write(msg)
+            file.close()
+        except:
+            self.write_profile(self, message)
+        
+    def run (self):
+        while True:
+            self.read_profile()
+            if self.pattern == 'rainbow':
+                n.rainbow_cycle(self.timing, self.bright)
+            elif self.pattern == 'breathe':
+                n.breathe(self.timing, self.bright)
+            elif self.pattern == 'chasing':
+                n.chase((255, 255, 255), self.timing, self.bright)
+            elif self.pattern == 'sparkle':
+                n.sparkle((rnd.randint(0, 255),rnd.randint(0, 255),rnd.randint(0, 255)), self.timing, self.bright)
+            else:
+                n.off()
+            # actuator.sleep(0.01)
