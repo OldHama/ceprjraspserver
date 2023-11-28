@@ -39,10 +39,18 @@ def send_ip():
     while True:
         try:
             ip_address = get_ip_address()
-            json_data = {
+            
+            if get_ip_address() == '192.168.0.104':
+                json_data = {
             "serial_number": my_serial_num,
-            "ip_address": ip_address
+            "ip_address": 'ceprjmaker.iptime.org'
             }
+            else:    
+                json_data = {
+                "serial_number": my_serial_num,
+                "ip_address": ip_address
+                }
+                
             if prev_ip_address != ip_address:
                 response = requests.post(url, json=json_data)
                 print(response.text)
@@ -98,12 +106,12 @@ def fast():
 @app.route('/set_brightness', methods=['POST', 'GET'])
 def set_brightness():
     global bright
-    
+    print(neopixel_t1.bright)
     data = request.json
     if data:
         bright = data.get("brightness")
-        if 0<=int(bright)<=1:
-            neopixel_t1.write_profile(f'{neopixel_t1.pattern}\n{neopixel_t1.timing}\n{bright}')
+        if 0<=float(bright)<=1:    
+            neopixel_t1.write_profile(f'{str(neopixel_t1.pattern)}\n{str(neopixel_t1.timing)}\n{str(bright)}')
             
     return jsonify({
                 "brightness": bright
@@ -111,18 +119,32 @@ def set_brightness():
 
 @app.route('/breathing', methods=['POST', 'GET'])
 def breathing():
-    neopixel_t1.write_profile(f'breathe\n0.01\n{neopixel_t1.bright}')            
+    
+    neopixel_t1.write_profile(f'breathe\n0.03\n{str(neopixel_t1.bright)}')
     return jsonify({
                 "pattern": neopixel_t1.pattern
             })
 
 @app.route('/rainbow', methods=['POST', 'GET'])
 def rainbow():
-    neopixel_t1.write_profile(f'rainbow\n0.005\n{neopixel_t1.bright}')            
+    neopixel_t1.read_profile()
+    neopixel_t1.write_profile(f'rainbow\n0.005\n{str(neopixel_t1.bright)}')            
     return jsonify({
                 "pattern":neopixel_t1.pattern
             })
-   
+@app.route('/Chasing', methods = ['POST', 'GET'])
+def chasing():
+    neopixel_t1.write_profile(f'chasing\n0.05\n{str(neopixel_t1.bright)}')
+    return jsonify({
+                "pattern": neopixel_t1.pattern
+            })
+@app.route('/Sparkle', methods = ['POST', 'GET'])
+def sparkle():
+    neopixel_t1.write_profile(f'sparkle\n0.05\n{str(neopixel_t1.bright)}')
+    return jsonify({
+                "pattern": neopixel_t1.pattern
+            })
+
 @app.route('/make_cocktail', methods=['POST', 'GET'])
 def make_cocktail():
     global status
@@ -142,16 +164,20 @@ def make_cocktail():
             
             status = "inprogress"
             pattern = neopixel_t1.pattern
-            print(pattern)
+            #print(pattern)
             send_status()
             neopixel_t1.write_profile(f'rainbow\n0.001\n{neopixel_t1.bright}')
             pumps = actuator.pumps
             timings = [first, second, third, fourth]
+            # actuator.make_sound()
+            actuator.indicator_off()
+            actuator.g.output(actuator.Y, True)
             
             pump1 = threading.Thread(target = lambda: pump_run(pumps[0], timings[0], 1))
             pump2 = threading.Thread(target = lambda: pump_run(pumps[1], timings[1], 1))
             pump3 = threading.Thread(target = lambda: pump_run(pumps[2], timings[2], 0.6))
             pump4 = threading.Thread(target = lambda: pump_run(pumps[3], timings[3], 1))
+            
             pump1.start()
             pump2.start()
             pump3.start()
@@ -166,6 +192,9 @@ def make_cocktail():
             send_status()
             status = "waiting"
             send_status()
+            actuator.indicator_off()
+            actuator.g.output(actuator.G, True)
+            
             return jsonify({
                 'UserID':UserID,
                 'recipeTitle': recipeTitle,
@@ -173,10 +202,12 @@ def make_cocktail():
                 'success' : True
             })
         else:
+            actuator.g.output(actuator.R, True)
             return jsonify({
                 'success' : False
             })
     else:
+        actuator.g.output(actuator.R, True)
         return jsonify({
             'success' : False
         })
